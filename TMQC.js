@@ -16,6 +16,30 @@ class TMQC extends EventEmitter {
         this.port = options.port;
         this.secret = options.secret;
         this.socket = new Tclient(this.ip, this.port);
+        //--------------------------------------------------------
+        let onconnect = () => {
+            let credentials = (
+                _(_.create(null))
+                    .set('name', this.service)
+                    .set('channel', this.channel)
+                    .set('events', this.eventNames())
+                    .set('http', this.http)
+                    .set('auth', this.auth)
+                    .set('secret', this.secret)
+            );
+
+            this.socket.emit('credentials', credentials.value());
+        };
+        //---------------------------------------------------------
+        let ready = () => {
+            this.socket.on('disconnect', () => this.socket.connect());
+            this.socket.on('task', msg => super.emit(msg['event'], msg, () => this.status('loose')));
+            this.socket.on('events', (msg, resp) => resp(this.eventNames()));
+        };
+        //---------------------------------------------------------
+        this.socket.on('connect', onconnect);
+        this.socket.once('ready', ready);
+        //---------------------------------------------------------
         this.setMaxListeners(0);
     }
 
@@ -84,31 +108,6 @@ class TMQC extends EventEmitter {
 
     onceAsync(event, signal = undefined) {
         return once(this, event, { signal });
-    }
-
-    async connect() {
-        //------------------------------------------------
-        let onconnect = () => {
-            let credentials = (
-                _(_.create(null))
-                    .set('name', this.service)
-                    .set('channel', this.channel)
-                    .set('events', this.eventNames())
-                    .set('http', this.http)
-                    .set('auth', this.auth)
-                    .set('secret', this.secret)
-            );
-
-            this.socket.emit('credentials', credentials.value());
-        };
-        //---------------------------------------------------------
-        this.socket.on('connect', onconnect);
-        this.socket.on('disconnect', () => this.socket.connect());
-        this.socket.on('task', msg => super.emit(msg['event'], msg, () => this.status('loose')));
-        this.socket.on('events', (msg, resp) => resp(this.eventNames()));
-        //---------------------------------------------------------
-        await this.socket.connect();
-        return true;
     }
 }
 

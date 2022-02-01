@@ -54,14 +54,6 @@ async function main() {
         unlock();
     });
 
-
-    // connect to server
-    await mqc1.connect();
-    await mqc2.connect();
-    await mqc3.connect();
-    await mqc4.connect();
-    await mqc5.connect();
-
     // list services
     setTimeout(() => mqc2.services().then(console.log), 1000);
 

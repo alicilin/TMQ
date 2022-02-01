@@ -34,17 +34,12 @@ async function main() {
 
 
     // connect to server
-    await mqc1.connect();
-    await mqc2.connect();
-    await mqc3.connect();
-    await mqc4.connect();
-    await mqc5.connect();
-
+    
     // list services
     setTimeout(() => mqc2.services().then(console.log), 1000);
 
-    for (let i = 0; i < 1000; i++) {
-        //assigns task to process
+    //assigns task to process
+    for (let i = 1; i < 10; i++) {
         await mqc1.publish({ service: 'test2', event: 'worked', data: 'holaaa mqc1 > mqc2 - ' + i });
         await mqc1.publish({ service: 'test5', event: 'workedx', data: 'holaaa mqc1 > mqc5. olmayan event - ' + i });
         await mqc3.publish({ service: 'test4', event: 'worked', data: 'holaaa mqc3 > mqc4 - ' + i });
