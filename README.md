@@ -36,6 +36,13 @@ async function main() {
         unlock(); 
     });
 
+    //or
+
+    for await ( let [msg, unlock] of mqc2.onAsync('worked')) {
+        console.log(msg.data);
+        await unlock();
+    }
+
     mqc4.on('worked', (msg, unlock) => {
         console.log(msg.data);
         unlock();
