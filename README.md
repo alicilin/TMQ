@@ -28,7 +28,7 @@ async function main() {
     let mqc4 = new TMQC({ service: 'test4', channel: 'channel-test', ip: '127.0.0.1', port: 8080, secret: '1234.' });
     let mqc5 = new TMQC({ service: 'test5', channel: 'channel-test', ip: '127.0.0.1', port: 8080, secret: '1234.' });
 
-    // event => worker, receiver => test2, channel => channel-test
+    // event => worked, receiver => test2, channel => channel-test
     mqc2.on('worked', async (msg, unlock) => {
         // received data
         console.log(msg.data);
