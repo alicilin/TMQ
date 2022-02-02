@@ -6,7 +6,7 @@ const moment = require('moment-timezone');
 const { v4 } = require('uuid');
 const sleep = require('./helpers/sleep');
 const stc = require('./helpers/stc');
-const v8 = require('v8');
+const { encode, decode } = require('msgpackr');
 const _ = require('lodash');
 
 async function services(socket, msg, res) {
@@ -58,7 +58,7 @@ async function publish(socket, msg, res) {
                 .set('sender', socket['name'])
                 .set('receiver', msg['service'])
                 .set('event', msg['event'])
-                .set('data', v8.serialize(msg['data']))
+                .set('data', encode(msg['data']))
                 .set('uid', v4())
                 .set('parent', msg['parent'])
                 .set('delay', s)
@@ -113,7 +113,7 @@ async function taskloop() {
             let iterable = await tknex.select('tasks.*');
             let tasks = [];
             for await (let item of iterable) {
-                item['data'] = v8.deserialize(item['data']);
+                item['data'] = decode(item['data']);
                 tasks.push(pusher.call(this, item));
             }
 
@@ -196,6 +196,7 @@ async function socketloop() {
                     socket['status'] = 'loose';
                     socket['tunix'] = moment().unix();
                 }
+                
                 socket['events'] = await socket.emit('events', null, true);
             }
         } catch (error) {

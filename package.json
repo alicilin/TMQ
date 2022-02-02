@@ -1,6 +1,6 @@
 {
   "name": "@connectterou/tmq",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "TCP based Message Queue server & Client for Node.js",
   "main": "index.js",
   "scripts": {
@@ -10,12 +10,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@connectterou/tsock": "^1.0.4",
+    "@connectterou/tsock": "^1.0.5",
     "@vscode/sqlite3": "^5.0.7",
     "joi": "^17.6.0",
     "knex": "^1.0.1",
     "lodash": "^4.17.21",
     "moment-timezone": "^0.5.34",
+    "msgpackr": "^1.5.3",
     "uuid": "^8.3.2"
   },
   "engines": {
@@ -24,5 +25,5 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alicilin/TMQ.git"
-}
+  }
 }

@@ -1,7 +1,7 @@
 'use strict';
 const { EventEmitter, on, once } = require('events');
-const validators = require('./validators/client');
 const { Tclient } = require('@connectterou/tsock');
+const validators = require('./validators/client');
 const _ = require('lodash');
 
 class TMQC extends EventEmitter {
