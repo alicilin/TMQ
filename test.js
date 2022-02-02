@@ -37,7 +37,6 @@ async function main() {
     
     // list services
     setTimeout(() => mqc2.services().then(console.log), 1000);
-
     //assigns task to process
     for (let i = 1; i < 10; i++) {
         await mqc1.publish({ service: 'test2', event: 'worked', data: 'holaaa mqc1 > mqc2 - ' + i });

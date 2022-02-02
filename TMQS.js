@@ -81,9 +81,11 @@ async function pusher(task) {
                 return;
             }
 
+            //-------------------------------------------------------------------------
             socket.emit('task', task);
             socket['status'] = 'busy';
             socket['tunix'] = moment().unix();
+            //------------------------------------------------------------------------
             await this.knex('tasks').where('id', task.id).delete();
             await this.knex('locks').where('id', locked[0]).delete();
             return;
@@ -95,27 +97,32 @@ async function pusher(task) {
 
 async function taskloop() {
     do {
-        let tsknex = this.knex('tasks');
-        //------------------------------------------------------
-        tsknex.where('delay', '<', moment().unix());
-        tsknex.orderBy('priority', 'desc');
-        tsknex.orderBy('id', 'asc');
-        tsknex.select('id');
-        //------------------------------------------------------
-        let tknex = this.knex({ sub: tsknex });
-        //------------------------------------------------------
-        tknex.join('tasks', 'sub.id', 'tasks.id');
-        tknex.groupBy(['channel', 'receiver', 'event']);
-        //------------------------------------------------------
-        let iterable = await tknex.select('tasks.*');
-        let tasks = [];
-        for await (let item of iterable) {
-            item['data'] = v8.deserialize(item['data']);
-            tasks.push(pusher.call(this, item));
-        }
+        try {
+            let tsknex = this.knex('tasks');
+            //------------------------------------------------------
+            tsknex.where('delay', '<', moment().unix());
+            tsknex.orderBy('priority', 'desc');
+            tsknex.orderBy('id', 'asc');
+            tsknex.select('id');
+            //------------------------------------------------------
+            let tknex = this.knex({ sub: tsknex });
+            //------------------------------------------------------
+            tknex.join('tasks', 'sub.id', 'tasks.id');
+            tknex.groupBy(['channel', 'receiver', 'event']);
+            //------------------------------------------------------
+            let iterable = await tknex.select('tasks.*');
+            let tasks = [];
+            for await (let item of iterable) {
+                item['data'] = v8.deserialize(item['data']);
+                tasks.push(pusher.call(this, item));
+            }
 
-        await Promise.all(tasks);
-        await sleep(1000);
+            await Promise.all(tasks);
+        } catch (error) {
+            console.log(error);
+        } finally {
+            await sleep(1000);
+        }
     } while (true);
 }
 
@@ -183,15 +190,19 @@ async function auth(socket, next) {
 
 async function socketloop() {
     do {
-        for await (let socket of this.tcp.filterSockets('services')) {
-            if (socket['tunix'] + this.lt < moment().unix()) {
-                socket['status'] = 'loose';
-                socket['tunix'] = moment().unix();
+        try {
+            for await (let socket of this.tcp.filterSockets('services')) {
+                if (socket['tunix'] + this.lt < moment().unix()) {
+                    socket['status'] = 'loose';
+                    socket['tunix'] = moment().unix();
+                }
+                socket['events'] = await socket.emit('events', null, true);
             }
-            socket['events'] = await socket.emit('events', null, true);
+        } catch (error) {
+            console.log(error);
+        } finally {
+            await sleep(1000);
         }
-
-        await sleep(2000);
     } while (true);
 }
 

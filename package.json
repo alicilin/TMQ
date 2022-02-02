@@ -1,6 +1,6 @@
 {
   "name": "@connectterou/tmq",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "TCP based Message Queue server & Client for Node.js",
   "main": "index.js",
   "scripts": {
