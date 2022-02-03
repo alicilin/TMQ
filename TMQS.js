@@ -174,15 +174,15 @@ async function auth(socket, next) {
     socket['events'] = credentials['events'];
     socket['status'] = 'loose';
 
-    let knexi = this.knex('services').where('name', credentials['name']);
+    // let knexi = this.knex('services').where('name', credentials['name']);
     if (credentials['http']) {
-        let http = { http: credentials['http'] };
-        let auth = { auth: credentials['auth'] || null };
-        await knexi.insert(_.merge(http, auth)).onConflict().merge();
+        let service = _.pick(credentials, ['name', 'http', 'auth']);
+        await this.knex('services').insert(service).onConflict('name').merge();
     }
 
     if (!credentials['http']) {
-        await knexi.insert({ name: credentials['name'] }).onConflict().ignore();
+        let service = _.pick(credentials, ['name']);
+        await this.knex('services').insert(service).onConflict('name').ignore();
     }
 
     next();
