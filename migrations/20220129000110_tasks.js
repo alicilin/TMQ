@@ -23,9 +23,8 @@ exports.up = function (knex) {
                 table.index('receiver');
                 table.index('event');
                 table.index('delay');
-                table.index(['channel', 'receiver', 'event'], 'tasks_group_index');
-                table.index([knex.raw('priority desc'), knex.raw('id asc')], 'tasks_sorting_index');
-                table.index(['delay', knex.raw('priority desc'), knex.raw('id asc')], 'tasks_sorting2_index');
+                table.index(['channel', 'receiver', 'event'], 'tasks_group_composite_index');
+                table.index([knex.raw('priority desc'), 'delay', knex.raw('id asc')], 'tasks_sorting_composite_index');
             })
         }
     });

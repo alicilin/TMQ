@@ -6,7 +6,7 @@ const validators = {
             port: joi.number().integer().min(7000).max(9999).required(),
             secret: joi.string().required(),
             locktimeout: joi.number().integer().required(),
-            path: joi.string().required()
+            connection: joi.any().required()
         }
     ),
     publish: joi.object(

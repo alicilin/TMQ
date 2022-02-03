@@ -1,7 +1,7 @@
 'use strict';
 const { Tserver } = require('@connectterou/tsock');
 const knex = require('./loaders/knex');
-const validators = require('./validators/daemon');
+const validators = require('./validators/server');
 const moment = require('moment-timezone');
 const { v4 } = require('uuid');
 const sleep = require('./helpers/sleep');
@@ -102,6 +102,7 @@ async function taskloop() {
             //------------------------------------------------------
             tsknex.where('delay', '<', moment().unix());
             tsknex.orderBy('priority', 'desc');
+            tsknex.orderBy('delay', 'asc');
             tsknex.orderBy('id', 'asc');
             tsknex.select('id');
             //------------------------------------------------------
