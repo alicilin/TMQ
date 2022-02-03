@@ -1,6 +1,6 @@
 {
   "name": "@connectterou/tmq",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "TCP based Message Queue server & Client for Node.js",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "@connectterou/tsock": "^1.0.5",
-    "@vscode/sqlite3": "^5.0.7",
     "joi": "^17.6.0",
     "knex": "^1.0.1",
     "lodash": "^4.17.21",
@@ -25,5 +24,8 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alicilin/TMQ.git"
+  },
+  "optionalDependencies": {
+    "@vscode/sqlite3": "^5.0.7"
   }
 }
