@@ -21,7 +21,7 @@ const connection = {
     connection: {
         host: 'localhost',
         user: 'root',
-        password: 'alicilin27',
+        password: 'test123',
         database: 'TMQ'
     }
 }
