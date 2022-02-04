@@ -1,10 +1,18 @@
 'use strict';
 const TMQS = require('./TMQS'); // T Message Queue Server
 const TMQC = require('./TMQC'); // T Message Queue Client
-
+const connection = {
+    client: 'mysql2',
+    connection: {
+        host: 'localhost',
+        user: 'root',
+        password: 'test123',
+        database: 'TMQ'
+    }
+}
 async function main() {
     // listening on port 8080, if path parameter is set to :memory: it stores data in ram
-    await (new TMQS({ port: 8080, secret: '1234.', path: __dirname + '/data/db.db' })).listen();
+    await (new TMQS({ port: 8080, secret: '1234.', connection })).listen();
     
     // create service
     let mqc1 = new TMQC({ service: 'test', channel: 'channel-test', ip: '127.0.0.1', port: 8080, secret: '1234.' }); 
@@ -36,9 +44,9 @@ async function main() {
     // connect to server
     
     // list services
-    setTimeout(() => mqc2.services().then(console.log), 1000);
+    // setTimeout(() => mqc2.services().then(console.log), 1000);
     //assigns task to process
-    for (let i = 1; i < 10; i++) {
+    for (let i = 1; i < 1000000; i++) {
         await mqc1.publish({ service: 'test2', event: 'worked', data: 'holaaa mqc1 > mqc2 - ' + i });
         await mqc1.publish({ service: 'test5', event: 'workedx', data: 'holaaa mqc1 > mqc5. olmayan event - ' + i });
         await mqc3.publish({ service: 'test4', event: 'worked', data: 'holaaa mqc3 > mqc4 - ' + i });

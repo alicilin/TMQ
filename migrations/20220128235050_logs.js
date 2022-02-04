@@ -18,8 +18,6 @@ exports.up = function (knex) {
                 table.index('receiver');
                 table.index('channel');
                 table.index('event');
-                table.index('message');
-                table.index('data');
             })
         }
     });

@@ -16,10 +16,26 @@ npm i @connectterou/tmq
 'use strict';
 const TMQS = require('@connectterou/tmq/TMQS'); // T Message Queue Server
 const TMQC = require('@connectterou/tmq/TMQC'); // T Message Queue Client
+const connection = {
+    client: 'mysql2',
+    connection: {
+        host: 'localhost',
+        user: 'root',
+        password: 'alicilin27',
+        database: 'TMQ'
+    }
+}
+
+// const connection = {
+//     client: 'sqlite3',
+//     connection: {
+//         filename: __dirname + '/data/db.db'
+//     }
+// }
 
 async function main() {
     // listening on port 8080, if path parameter is set to :memory: it stores data in ram
-    await (new TMQS({ port: 8080, secret: '1234.', path: __dirname + '/data/db.db' })).listen();
+    await (new TMQS({ port: 8080, secret: '1234.', connection })).listen();
     
     // create service
     let mqc1 = new TMQC({ service: 'test', channel: 'channel-test', ip: '127.0.0.1', port: 8080, secret: '1234.' }); 

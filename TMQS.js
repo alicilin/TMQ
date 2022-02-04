@@ -98,20 +98,25 @@ async function pusher(task) {
 async function taskloop() {
     do {
         try {
-            let tsknex = this.knex('tasks');
+            let tknex = this.knex('tasks');
             //------------------------------------------------------
-            tsknex.where('delay', '<', moment().unix());
-            tsknex.orderBy('priority', 'desc');
-            tsknex.orderBy('delay', 'asc');
-            tsknex.orderBy('id', 'asc');
-            tsknex.select('id');
+            tknex.where('delay', '<', moment().unix());
+            tknex.orderBy('priority', 'desc');
+            tknex.orderBy('delay', 'asc');
+            tknex.orderBy('id', 'asc');
+            tknex.select('id', 'priority', 'delay');
             //------------------------------------------------------
-            let tknex = this.knex({ sub: tsknex });
+            let t1knex = this.knex({ t: tknex });
             //------------------------------------------------------
-            tknex.join('tasks', 'sub.id', 'tasks.id');
-            tknex.groupBy(['channel', 'receiver', 'event']);
+            t1knex.join('tasks as t1', 't1.id', 't.id');
+            t1knex.groupBy(['t1.channel', 't1.receiver', 't1.event']);
+            t1knex.select('t1.id');
+            t1knex.limit(1000);
             //------------------------------------------------------
-            let iterable = await tknex.select('tasks.*');
+            let t2knex = this.knex({ t2: t1knex });
+            t2knex.join('tasks as t3', 't3.id', 't2.id');
+            //------------------------------------------------------
+            let iterable = await t2knex.select('t3.*');
             let tasks = [];
             for await (let item of iterable) {
                 item['data'] = decode(item['data']);
@@ -175,7 +180,6 @@ async function auth(socket, next) {
     socket['events'] = credentials['events'];
     socket['status'] = 'loose';
 
-    // let knexi = this.knex('services').where('name', credentials['name']);
     if (credentials['http']) {
         let service = _.pick(credentials, ['name', 'http', 'auth']);
         await this.knex('services').insert(service).onConflict('name').merge();
@@ -216,8 +220,8 @@ class TMQS {
         this.port = options.port || 3000;
         this.secret = options.secret || 'ok';
         this.tcp = new Tserver(this.port);
-        this.path = options.path;
-        this.knex = knex(this.path);
+        this.connection = options.connection;
+        this.knex = knex(this.connection);
     }
 
     async listen() {
@@ -231,7 +235,10 @@ class TMQS {
         //----------------------------------------------
         setImmediate(taskloop.bind(this));
         setImmediate(socketloop.bind(this));
-        setInterval(() => this.knex.raw('VACUUM').then(x => x), 10 * 1000);
+        if (this.connection['client'] === 'sqlite3') {
+            setInterval(() => this.knex.raw('VACUUM').then(x => x), 10 * 1000);
+        }
+        
         return;
     }
     
