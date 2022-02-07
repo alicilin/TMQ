@@ -15,7 +15,7 @@ exports.up = function (knex) {
                 table.string('event', 100).notNull();
                 table.integer('priority').defaultTo(knex.raw('1'));
                 table.bigInteger('delay').notNull();
-                table.binary('data', 100);
+                table.binary('data');
 
                 table.unique('uid');
                 table.index([knex.raw('priority desc'), 'delay', 'id'], 'tasks_sorting_index');
