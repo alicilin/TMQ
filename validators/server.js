@@ -16,6 +16,7 @@ const validators = {
             data: joi.any().required(),
             parent: joi.any().optional().allow(null),
             priority: joi.number().integer().max(1000).min(1).required(),
+            loops: joi.object({ task: joi.number().integer(), socket: joi.number().integer() }).required(),
             delay: (
                 joi
                     .alternatives()

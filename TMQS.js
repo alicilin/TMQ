@@ -127,7 +127,7 @@ async function taskloop() {
         } catch (error) {
             console.log(error);
         } finally {
-            await sleep(1000);
+            await sleep(this.loops.task || 1000);
         }
     } while (true);
 }
@@ -207,7 +207,7 @@ async function socketloop() {
         } catch (error) {
             console.log(error);
         } finally {
-            await sleep(1000);
+            await sleep(this.loops.socket || 2000);
         }
     } while (true);
 }
@@ -221,6 +221,7 @@ class TMQS {
         this.secret = options.secret || 'ok';
         this.tcp = new Tserver(this.port);
         this.connection = options.connection;
+        this.loops = options.loops;
         this.knex = knex(this.connection);
     }
 
@@ -242,7 +243,7 @@ class TMQS {
                 .delete().then(x => x)
         );
 
-        setInterval(clear, 1000);
+        setInterval(clear, 3000);
         //----------------------------------------------
         if (this.connection['client'] === 'sqlite3') {
             setInterval(() => this.knex.raw('VACUUM').then(x => x), 10 * 1000);
