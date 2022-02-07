@@ -1,6 +1,6 @@
 {
   "name": "@connectterou/tmq",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "TCP based Message Queue server & Client for Node.js",
   "main": "index.js",
   "scripts": {
@@ -24,10 +24,5 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alicilin/TMQ.git"
-  },
-  "optionalDependencies": {
-    "@vscode/sqlite3": "^5.0.7",
-    "mysql2": "^2.3.3",
-    "pg": "^8.7.1"
   }
 }

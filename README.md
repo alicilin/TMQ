@@ -17,7 +17,7 @@ npm i @connectterou/tmq
 const TMQS = require('@connectterou/tmq/TMQS'); // T Message Queue Server
 const TMQC = require('@connectterou/tmq/TMQC'); // T Message Queue Client
 const connection = {
-    client: 'mysql2',
+    client: 'mysql2', // npm install mysql2
     connection: {
         host: 'localhost',
         user: 'root',
@@ -27,7 +27,7 @@ const connection = {
 }
 
 // const connection = {
-//     client: 'sqlite3',
+//     client: 'sqlite3', //npm install @vscode/sqlite3
 //     connection: {
 //         filename: __dirname + '/data/db.db'
 //     }
