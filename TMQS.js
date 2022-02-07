@@ -77,7 +77,7 @@ async function publish(socket, msg, res) {
 
 async function pusher(task) {
     for await (let socket of this.tcp.filterSockets(`${task['receiver']}:${task['channel']}`)) {
-        if (socket['status'] === 'loose' && _.includes(socket['events'], task.event)) {
+        if (socket['status'] === 'loose' && _.includes(socket['events'], task['event'])) {
             try {
                 let lock = { key: task['channel'], expired_at: moment().add(this.lt, 'second').unix() };
                 let locked = await stc(() => this.knex('locks').insert(lock));
@@ -113,7 +113,7 @@ async function taskloop() {
             tsub.orderBy('delay', 'asc');
             tsub.orderBy('id', 'asc');
             //-----------------------------------------------
-            let tasks = this.knex(tsub);
+            let tasks = this.knex({ sub: tsub });
             //-----------------------------------------------
             tasks.groupBy(['channel', 'receiver', 'event']);
             tasks.limit(500);
@@ -239,7 +239,7 @@ class TMQS {
         let clear = () => (
             this.knex('locks')
                 .where('expired_at', '<', moment().unix())
-                .delete().then(x => x)
+                .delete().then(x => console.log('deleted %s lock', x))
         );
 
         setInterval(clear, 1000);

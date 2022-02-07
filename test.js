@@ -2,13 +2,14 @@
 const TMQS = require('./TMQS'); // T Message Queue Server
 const TMQC = require('./TMQC'); // T Message Queue Client
 const connection = {
-    client: 'sqlite3',
+    client: 'mysql2',
+    // client: 'sqlite3',
     connection: {
-        // host: 'localhost',
-        // user: 'root',
-        // password: 'alicilin27',
-        // database: 'TMQ'
-        filename: './db.db'
+        host: 'localhost',
+        user: 'root',
+        password: 'alicilin27',
+        database: 'TMQ'
+        // filename: './db.db'
     },
 
     useNullAsDefault: true
