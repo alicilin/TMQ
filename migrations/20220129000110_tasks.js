@@ -13,13 +13,13 @@ exports.up = function (knex) {
                 table.string('sender', 100).notNull();
                 table.string('receiver', 100).notNull();
                 table.string('event', 100).notNull();
-                table.binary('data', 100);
-                table.bigInteger('delay').notNull();
                 table.integer('priority').defaultTo(knex.raw('1'));
+                table.bigInteger('delay').notNull();
+                table.binary('data', 100);
 
                 table.unique('uid');
-                table.index(['channel', 'receiver', 'event'], 'tasks_group_composite_index');
-                table.index([knex.raw('priority desc'), 'delay', knex.raw('id asc')], 'tasks_sorting_composite_index');
+                table.index([knex.raw('priority desc'), 'delay', 'id'], 'tasks_sorting_index');
+                table.index(['channel', 'receiver', 'event'], 'tasks_group_index');
             })
         }
     });

@@ -29,7 +29,7 @@ const validators = {
 
         }
     ),
-    status: joi.string().required().allow('loose', 'busy'),
+    unlock: joi.string().required().max(100).min(1),
     log: joi.object(
         {
             sender: joi.string().required(),

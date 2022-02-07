@@ -13,14 +13,15 @@ async function services(socket, msg, res) {
     this.knex('services').then(x => res(x));
 }
 
-async function status(socket, msg, res) {
-    let valid = await stc(() => validators.status.validateAsync(msg));
+async function unlock(socket, msg, res) {
+    let valid = await stc(() => validators.unlock.validateAsync(msg));
     if (_.isError(valid)) {
         return res({ success: false, message: valid.message });
     }
 
-    socket.status = msg;
-    socket.tunix = moment().unix();
+    socket['status'] = 'loose';
+    socket['time'] = moment().unix();
+    await this.knex('locks').where('key', msg).delete();
     return res({ success: true });
 }
 
@@ -64,8 +65,9 @@ async function publish(socket, msg, res) {
                 .set('delay', s)
                 .set('priority', msg['priority'])
         );
-        
+        //---------------------------------------------------------------------------------
         let [id] = await this.knex('tasks').insert(task.value());
+        //---------------------------------------------------------------------------------
         return res(_.merge({ id }, task.value()));
     } catch (error) {
         console.log(error);
@@ -74,20 +76,26 @@ async function publish(socket, msg, res) {
 }
 
 async function pusher(task) {
-    for await (let socket of this.tcp.filterSockets(`${task.receiver}:${task.channel}`)) {
+    for await (let socket of this.tcp.filterSockets(`${task['receiver']}:${task['channel']}`)) {
         if (socket['status'] === 'loose' && _.includes(socket['events'], task.event)) {
-            let locked = await stc(() => this.knex('locks').insert({ key: task.id }));
-            if (_.isError(locked)) {
-                return;
+            try {
+                let lock = { key: task['channel'], expired_at: moment().add(this.lt, 'second').unix() };
+                let locked = await stc(() => this.knex('locks').insert(lock));
+                if (_.isError(locked)) {
+                    return;
+                }
+
+                //-------------------------------------------------------------------------
+                socket.emit('task', task);
+                socket['status'] = 'busy';
+                socket['time'] = moment().unix();
+                //------------------------------------------------------------------------
+                await this.knex('tasks').where('id', task.id).delete();
+            } catch (error) {
+                console.log(error);
+                continue;
             }
 
-            //-------------------------------------------------------------------------
-            socket.emit('task', task);
-            socket['status'] = 'busy';
-            socket['tunix'] = moment().unix();
-            //------------------------------------------------------------------------
-            await this.knex('tasks').where('id', task.id).delete();
-            await this.knex('locks').where('id', locked[0]).delete();
             return;
         }
     }
@@ -98,32 +106,24 @@ async function pusher(task) {
 async function taskloop() {
     do {
         try {
-            let tknex = this.knex('tasks');
-            //------------------------------------------------------
-            tknex.where('delay', '<', moment().unix());
-            tknex.orderBy('priority', 'desc');
-            tknex.orderBy('delay', 'asc');
-            tknex.orderBy('id', 'asc');
-            tknex.select('id', 'priority', 'delay');
-            //------------------------------------------------------
-            let t1knex = this.knex({ t: tknex });
-            //------------------------------------------------------
-            t1knex.join('tasks as t1', 't1.id', 't.id');
-            t1knex.groupBy(['t1.channel', 't1.receiver', 't1.event']);
-            t1knex.select('t1.id');
-            t1knex.limit(1000);
-            //------------------------------------------------------
-            let t2knex = this.knex({ t2: t1knex });
-            t2knex.join('tasks as t3', 't3.id', 't2.id');
-            //------------------------------------------------------
-            let iterable = await t2knex.select('t3.*');
-            let tasks = [];
-            for await (let item of iterable) {
+            let tsub = this.knex('tasks');
+            //------------------------------------------------
+            tsub.where('delay', '<', moment().unix());
+            tsub.orderBy('priority', 'desc');
+            tsub.orderBy('delay', 'asc');
+            tsub.orderBy('id', 'asc');
+            //-----------------------------------------------
+            let tasks = this.knex(tsub);
+            //-----------------------------------------------
+            tasks.groupBy(['channel', 'receiver', 'event']);
+            tasks.limit(500);
+            //-----------------------------------------------
+            let iterable = await tasks.select('*');
+            for (let item of iterable) {
                 item['data'] = decode(item['data']);
-                tasks.push(pusher.call(this, item));
+                await pusher.call(this, item);
             }
 
-            await Promise.all(tasks);
         } catch (error) {
             console.log(error);
         } finally {
@@ -158,7 +158,7 @@ async function log(socket, msg, res) {
 
 async function connection(socket) {
     socket.on('services', services.bind(this, socket));
-    socket.on('status', status.bind(this, socket));
+    socket.on('unlock', unlock.bind(this, socket));
     socket.on('log', log.bind(this, socket));
     socket.on('publish', publish.bind(this, socket));
     socket.on('error', console.log);
@@ -197,9 +197,9 @@ async function socketloop() {
     do {
         try {
             for await (let socket of this.tcp.filterSockets('services')) {
-                if (socket['tunix'] + this.lt < moment().unix()) {
+                if (socket['time'] + this.lt < moment().unix()) {
                     socket['status'] = 'loose';
-                    socket['tunix'] = moment().unix();
+                    socket['time'] = moment().unix();
                 }
                 
                 socket['events'] = await socket.emit('events', null, true);
@@ -235,10 +235,19 @@ class TMQS {
         //----------------------------------------------
         setImmediate(taskloop.bind(this));
         setImmediate(socketloop.bind(this));
+        //----------------------------------------------
+        let clear = () => (
+            this.knex('locks')
+                .where('expired_at', '<', moment().unix())
+                .delete().then(x => x)
+        );
+
+        setInterval(clear, 1000);
+        //----------------------------------------------
         if (this.connection['client'] === 'sqlite3') {
             setInterval(() => this.knex.raw('VACUUM').then(x => x), 10 * 1000);
         }
-        
+
         return;
     }
     

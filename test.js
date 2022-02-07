@@ -2,13 +2,16 @@
 const TMQS = require('./TMQS'); // T Message Queue Server
 const TMQC = require('./TMQC'); // T Message Queue Client
 const connection = {
-    client: 'mysql2',
+    client: 'sqlite3',
     connection: {
-        host: 'localhost',
-        user: 'root',
-        password: 'test123',
-        database: 'TMQ'
-    }
+        // host: 'localhost',
+        // user: 'root',
+        // password: 'alicilin27',
+        // database: 'TMQ'
+        filename: './db.db'
+    },
+
+    useNullAsDefault: true
 }
 async function main() {
     // listening on port 8080, if path parameter is set to :memory: it stores data in ram
@@ -46,9 +49,9 @@ async function main() {
     // list services
     // setTimeout(() => mqc2.services().then(console.log), 1000);
     //assigns task to process
-    for (let i = 1; i < 1000000; i++) {
+    for (let i = 1; i < 1000; i++) {
         await mqc1.publish({ service: 'test2', event: 'worked', data: 'holaaa mqc1 > mqc2 - ' + i });
-        await mqc1.publish({ service: 'test5', event: 'workedx', data: 'holaaa mqc1 > mqc5. olmayan event - ' + i });
+        // await mqc1.publish({ service: 'test5', event: 'workedx', data: 'holaaa mqc1 > mqc5. olmayan event - ' + i });
         await mqc3.publish({ service: 'test4', event: 'worked', data: 'holaaa mqc3 > mqc4 - ' + i });
     }
 }

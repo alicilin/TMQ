@@ -31,6 +31,7 @@ const connection = {
 //     connection: {
 //         filename: __dirname + '/data/db.db'
 //     }
+//     useNullAsDefault: true
 // }
 
 async function main() {

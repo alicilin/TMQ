@@ -32,8 +32,13 @@ class TMQC extends EventEmitter {
         };
         //---------------------------------------------------------
         let ready = () => {
+            let task = msg => {
+                let unlock = this.unlock.bind(this, msg['channel']);
+                super.emit(msg['event'], msg, unlock);
+            };
+            
             this.socket.on('disconnect', () => this.socket.connect());
-            this.socket.on('task', msg => super.emit(msg['event'], msg, () => this.status('loose')));
+            this.socket.on('task', task);
             this.socket.on('events', (msg, resp) => resp(this.eventNames()));
         };
         //---------------------------------------------------------
@@ -43,8 +48,8 @@ class TMQC extends EventEmitter {
         this.setMaxListeners(0);
     }
 
-    async status(msg = 'loose') {
-        let resp = await this.socket.emit('status', msg, true);
+    async unlock(msg) {
+        let resp = await this.socket.emit('unlock', msg, true);
         if (resp['success'] === false) {
             throw new Error(resp['message']);
         }
