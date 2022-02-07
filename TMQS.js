@@ -221,7 +221,7 @@ class TMQS {
         this.secret = options.secret || 'ok';
         this.tcp = new Tserver(this.port);
         this.connection = options.connection;
-        this.loops = options.loops;
+        this.loops = options.loops || { };
         this.knex = knex(this.connection);
     }
 

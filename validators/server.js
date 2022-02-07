@@ -7,7 +7,7 @@ const validators = {
             secret: joi.string().required(),
             locktimeout: joi.number().integer().required(),
             connection: joi.any().required(),
-            loops: joi.object({ task: joi.number().integer(), socket: joi.number().integer() }).required(),
+            loops: joi.object({ task: joi.number().integer(), socket: joi.number().integer() }).optional(),
         }
     ),
     publish: joi.object(
