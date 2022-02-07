@@ -239,7 +239,7 @@ class TMQS {
         let clear = () => (
             this.knex('locks')
                 .where('expired_at', '<', moment().unix())
-                .delete().then(x => console.log('deleted %s lock', x))
+                .delete().then(x => x)
         );
 
         setInterval(clear, 1000);
