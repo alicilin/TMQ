@@ -18,7 +18,7 @@ exports.up = function (knex) {
                 table.binary('data');
 
                 table.unique('uid');
-                table.index(['channel', 'receiver', 'event',knex.raw('priority desc'), 'delay', 'id'], 'tasks_sorting_index');
+                table.index(['channel', 'receiver', 'event', knex.raw('priority desc'), 'delay', 'id'], 'tasks_sorting_index');
                 table.index(['delay', 'channel', 'receiver', 'event'], 'tasks_group_index');
             })
         }

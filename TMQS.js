@@ -53,6 +53,51 @@ async function publish(socket, msg, res) {
             return res({ success: false, message: 'DELAY_IS_NOT_DATE' });
         }
 
+        if (_.isArray(msg['service'])) {
+            let trx = await this.knex.transaction();
+            let matcher = new RegExp(...msg['service']);
+            let response = [];
+            try {
+                let services = await this.knex('services');
+                for (let service of services) {
+                    if (matcher.test(service['name'])) {
+                        let task = (
+                            _(_.create(null))
+                                .set('channel', socket['channel'])
+                                .set('sender', socket['name'])
+                                .set('receiver', service['name'])
+                                .set('event', msg['event'])
+                                .set('data', encode(msg['data']))
+                                .set('uid', v4())
+                                .set('parent', msg['parent'])
+                                .set('delay', unixs)
+                                .set('priority', msg['priority'])
+                        );
+                        //---------------------------------------------------------------------------------
+                        let inserting = this.knex('tasks').transacting(trx).insert(task.value());
+                        let result = await (
+                            _.includes(['pg', 'pg-native'], this.connection['client'])
+                                ? inserting.returning('*')
+                                : inserting
+                        );
+                        //---------------------------------------------------------------------------------
+                        let id = _.isInteger(result[0]) ? _.first(result) : _.get(result, '[0].id');
+                        if (unixs < moment().unix()) {
+                            pusher.call(this, _.merge({ id }, task.value(), { data: msg['data'] }));
+                        }
+
+                        response.push(_.merge({ id }, task.value(), { data: msg['data'] }));
+                    }
+                }
+
+                await trx.commit();
+                return res(response);
+            } catch (error) {
+                trx.rollback();
+                throw error;
+            }
+        }
+
         let task = (
             _(_.create(null))
                 .set('channel', socket['channel'])
@@ -79,7 +124,7 @@ async function publish(socket, msg, res) {
         }
 
         //---------------------------------------------------------------------------------
-        return res(_.merge({ id }, task.value()));
+        return res(_.merge({ id }, task.value(), { data: msg['data'] }));
     } catch (error) {
         console.log(error);
         return res({ succes: false, message: error.message });
@@ -123,20 +168,20 @@ async function taskloop() {
             ts.groupBy(['channel', 'receiver', 'event']);
             //-----------------------------------------------
             let rows = await ts.select('channel', 'receiver', 'event');
-            for (let row of rows) {
-                let task = this.knex('tasks');
-                //----------------------------------------------------
-                task.where(row);
-                task.orderBy('priority', 'desc');
-                task.orderBy('delay', 'asc');
-                task.orderBy('id', 'asc');
-                //----------------------------------------------------
-                let first = await task.first('*');
-                //----------------------------------------------------
-                first['data'] = decode(first['data']);
-                await pusher.call(this, first);
-            }
+            let mapper = where => (
+                this.knex('tasks')
+                    .where(where)
+                    .orderBy('priority', 'desc')
+                    .orderBy('delay', 'asc')
+                    .orderBy('id', 'asc')
+                    .first('*')
+            );
 
+            let tasks = await Promise.all(_.map(rows, mapper));
+            for (let task of tasks) {
+                task['data'] = decode(task['data']);
+                await pusher.call(this, task);
+            }
         } catch (error) {
             console.log(error);
         } finally {

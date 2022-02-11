@@ -12,7 +12,11 @@ const validators = {
     ),
     publish: joi.object(
         {
-            service: joi.string().required(),
+            service: joi.alternatives()
+                .try(
+                    joi.string().required(),
+                    joi.array().items(joi.string().required()).required()
+                ),
             event: joi.string().required(),
             data: joi.any().required(),
             parent: joi.any().optional().allow(null),
