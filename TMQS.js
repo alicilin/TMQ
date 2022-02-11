@@ -131,7 +131,6 @@ async function taskloop() {
                 task.orderBy('delay', 'asc');
                 task.orderBy('id', 'asc');
                 //----------------------------------------------------
-                console.log(task.clone().first('*').toString());
                 let first = await task.first('*');
                 //----------------------------------------------------
                 first['data'] = decode(first['data']);
