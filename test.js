@@ -8,7 +8,7 @@ const connection = {
         host: 'localhost',
         user: 'root',
         password: 'alicilin27',
-        database: 'TMQ'
+        database: 'tmq'
         // filename: './db.db'
     },
 

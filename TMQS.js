@@ -32,24 +32,24 @@ async function publish(socket, msg, res) {
     }
 
     try {
-        let s = null;
+        let unixs = null;
         if (_.isNil(msg['delay'])) {
-            s = moment().subtract(10, 'minute').unix();
+            unixs = moment().subtract(10, 'minute').unix();
         }
 
         if (_.isInteger(msg['delay'])) {
-            s = moment().add(msg['delay'], 'second').unix();
+            unixs = moment().add(msg['delay'], 'second').unix();
         }
 
         if (_.isString(msg['delay'])) {
-            s = moment(msg['delay']).unix();
+            unixs = moment(msg['delay']).unix();
         }
 
         if (_.isDate(msg['delay'])) {
-            s = moment(msg['delay']).unix();
+            unixs = moment(msg['delay']).unix();
         }
 
-        if (!_.isInteger(s)) {
+        if (!_.isInteger(unixs)) {
             return res({ success: false, message: 'DELAY_IS_NOT_DATE' });
         }
 
@@ -62,11 +62,22 @@ async function publish(socket, msg, res) {
                 .set('data', encode(msg['data']))
                 .set('uid', v4())
                 .set('parent', msg['parent'])
-                .set('delay', s)
+                .set('delay', unixs)
                 .set('priority', msg['priority'])
         );
         //---------------------------------------------------------------------------------
-        let [id] = await this.knex('tasks').insert(task.value());
+        let inserting = this.knex('tasks').insert(task.value());
+        let result = await (
+            _.includes(['pg', 'pg-native'], this.connection['client'])
+                ? this.knex('tasks').insert(task.value()).returning('*')
+                : this.knex('tasks').insert(task.value())
+        );
+        //---------------------------------------------------------------------------------
+        let id = _.isInteger(result[0]) ? _.first(result) : _.get(result, '[0].id');
+        if (unixs < moment().unix()) {
+            pusher.call(this, _.merge({ id }, task.value(), { data: msg['data'] }));
+        }
+
         //---------------------------------------------------------------------------------
         return res(_.merge({ id }, task.value()));
     } catch (error) {
@@ -106,22 +117,25 @@ async function pusher(task) {
 async function taskloop() {
     do {
         try {
-            let tsub = this.knex('tasks');
+            let ts = this.knex('tasks');
             //------------------------------------------------
-            tsub.where('delay', '<', moment().unix());
-            tsub.orderBy('priority', 'desc');
-            tsub.orderBy('delay', 'asc');
-            tsub.orderBy('id', 'asc');
+            ts.where('delay', '<', moment().unix());
+            ts.groupBy(['channel', 'receiver', 'event']);
             //-----------------------------------------------
-            let tasks = this.knex({ sub: tsub });
-            //-----------------------------------------------
-            tasks.groupBy(['channel', 'receiver', 'event']);
-            tasks.limit(500);
-            //-----------------------------------------------
-            let iterable = await tasks.select('*');
-            for (let item of iterable) {
-                item['data'] = decode(item['data']);
-                await pusher.call(this, item);
+            let rows = await ts.select('channel', 'receiver', 'event');
+            for (let row of rows) {
+                let task = this.knex('tasks');
+                //----------------------------------------------------
+                task.where(row);
+                task.orderBy('priority', 'desc');
+                task.orderBy('delay', 'asc');
+                task.orderBy('id', 'asc');
+                //----------------------------------------------------
+                console.log(task.clone().first('*').toString());
+                let first = await task.first('*');
+                //----------------------------------------------------
+                first['data'] = decode(first['data']);
+                await pusher.call(this, first);
             }
 
         } catch (error) {
