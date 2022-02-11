@@ -69,8 +69,8 @@ async function publish(socket, msg, res) {
         let inserting = this.knex('tasks').insert(task.value());
         let result = await (
             _.includes(['pg', 'pg-native'], this.connection['client'])
-                ? this.knex('tasks').insert(task.value()).returning('*')
-                : this.knex('tasks').insert(task.value())
+                ? inserting.returning('*')
+                : inserting
         );
         //---------------------------------------------------------------------------------
         let id = _.isInteger(result[0]) ? _.first(result) : _.get(result, '[0].id');
