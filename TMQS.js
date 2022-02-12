@@ -83,10 +83,10 @@ async function publish(socket, msg, res) {
                         //---------------------------------------------------------------------------------
                         let id = _.isInteger(result[0]) ? _.first(result) : _.get(result, '[0].id');
                         if (unixs < moment().unix()) {
-                            pusher.call(this, _.merge({ id }, task.value(), { data: msg['data'] }));
+                            pusher.call(this, { id, ...task.value(), data: msg['data'] });
                         }
 
-                        response.push(_.merge({ id }, task.value(), { data: msg['data'] }));
+                        response.push({ id, ...task.value(), data: msg['data'] });
                     }
                 }
 
@@ -120,11 +120,11 @@ async function publish(socket, msg, res) {
         //---------------------------------------------------------------------------------
         let id = _.isInteger(result[0]) ? _.first(result) : _.get(result, '[0].id');
         if (unixs < moment().unix()) {
-            pusher.call(this, _.merge({ id }, task.value(), { data: msg['data'] }));
+            pusher.call(this, { id, ...task.value(), data: msg['data']});
         }
 
         //---------------------------------------------------------------------------------
-        return res(_.merge({ id }, task.value(), { data: msg['data'] }));
+        return res({ id, ...task.value(), data: msg['data'] });
     } catch (error) {
         console.log(error);
         return res({ succes: false, message: error.message });
