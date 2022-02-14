@@ -76,7 +76,8 @@ async function main() {
 
     for (let i = 0; i < 1000; i++) {
         //assigns task to process
-        await mqc1.publish({ service: 'test2', event: 'worked', data: 'holaaa mqc1 > mqc2 - ' + i });
+        await mqc1.publish({ service: 'test2', event: 'worked', data: 'holaaa mqc1 > mqc2 - ' + i, delay: 60 }); //Works after 60 seconds
+        await mqc1.publish({ service: /^test/i, event: 'worked', data: 'holaaa mqc1 > mqc2 - ' + i }); // Sends to all workers containing the word 'test'
         await mqc1.publish({ service: 'test5', event: 'workedx', data: 'holaaa mqc1 > mqc5 - ' + i });
         await mqc3.publish({ service: 'test4', event: 'worked', data: 'holaaa mqc3 > mqc4 - ' + i });
     }
