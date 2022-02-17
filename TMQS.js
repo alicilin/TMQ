@@ -142,7 +142,7 @@ async function pusher(task) {
                 }
 
                 //-------------------------------------------------------------------------
-                socket.emit('task', task);
+                socket.emit('task', task).catch(console.log);
                 socket['status'] = 'busy';
                 socket['time'] = moment().unix();
                 //------------------------------------------------------------------------
