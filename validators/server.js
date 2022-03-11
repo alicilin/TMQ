@@ -12,7 +12,7 @@ const validators = {
     ),
     publish: joi.object(
         {
-            prefix: joi.string().optional().allow(null, undefined),
+            prefix: joi.string().optional().allow(null),
             service: joi.alternatives()
                 .try(
                     joi.string().required(),
