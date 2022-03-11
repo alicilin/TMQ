@@ -13,6 +13,16 @@ async function services(socket, msg, res) {
     this.knex('services').then(x => res(x));
 }
 
+async function cancel(socket, msg, res) {
+    let valid = await stc(() => validators.cancel.validateAsync(msg));
+    if (_.isError(valid)) {
+        return res({ success: false, message: valid.message });
+    }
+
+    await this.knex('tasks').where('uid', 'LIKE', msg).delete();
+    return res({ success: true });
+}
+
 async function unlock(socket, msg, res) {
     let valid = await stc(() => validators.unlock.validateAsync(msg));
     if (_.isError(valid)) {
@@ -68,7 +78,7 @@ async function publish(socket, msg, res) {
                                 .set('receiver', service['name'])
                                 .set('event', msg['event'])
                                 .set('data', encode(msg['data']))
-                                .set('uid', v4())
+                                .set('uid', `${msg['prefix'] || '#'}:${v4()}`)
                                 .set('parent', msg['parent'])
                                 .set('delay', unixs)
                                 .set('priority', msg['priority'])
@@ -105,7 +115,7 @@ async function publish(socket, msg, res) {
                 .set('receiver', msg['service'])
                 .set('event', msg['event'])
                 .set('data', encode(msg['data']))
-                .set('uid', v4())
+                .set('uid', `${msg['prefix'] || '#'}:${v4()}`)
                 .set('parent', msg['parent'])
                 .set('delay', unixs)
                 .set('priority', msg['priority'])
@@ -217,6 +227,7 @@ async function log(socket, msg, res) {
 async function connection(socket) {
     socket.on('services', services.bind(this, socket));
     socket.on('unlock', unlock.bind(this, socket));
+    socket.on('cancel', cancel.bind(this, socket));
     socket.on('log', log.bind(this, socket));
     socket.on('publish', publish.bind(this, socket));
     socket.on('error', console.log);

@@ -12,6 +12,7 @@ const validators = {
     ),
     publish: joi.object(
         {
+            prefix: joi.string().optional(),
             service: joi.alternatives()
                 .try(
                     joi.string().required(),
@@ -35,6 +36,7 @@ const validators = {
         }
     ),
     unlock: joi.string().required().max(100).min(1),
+    cancel: joi.string().required().max(100).min(1),
     log: joi.object(
         {
             sender: joi.string().required(),

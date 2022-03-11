@@ -23,6 +23,7 @@ const validators = {
 
     publish: joi.object(
         {
+            prefix: joi.string().optional(),
             service: joi.alternatives().try(joi.string().required(), joi.object().regex().required()),
             event: joi.string().required(),
             data: joi.any().required(),
