@@ -309,13 +309,13 @@ class TMQS {
         let clear = () => (
             this.knex('locks')
                 .where('expired_at', '<', moment().unix())
-                .delete().then(x => x)
+                .delete().then(x => x).catch(x => x)
         );
 
         setInterval(clear, 3000);
         //----------------------------------------------
         if (this.connection['client'] === 'sqlite3') {
-            setInterval(() => this.knex.raw('VACUUM').then(x => x), 10 * 1000);
+            setInterval(() => this.knex.raw('VACUUM').then(x => x).catch(x => x), 10 * 1000);
         }
 
         return;
