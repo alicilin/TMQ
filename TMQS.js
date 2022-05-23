@@ -294,6 +294,11 @@ class TMQS {
         this.knex = knex(this.connection);
     }
 
+    async registerService(name, http, auth) {
+        let service = { name, http, auth };
+        await this.knex('services').insert(service).onConflict('name').merge();
+    }
+
     async listen() {
         this.tcp.use(auth.bind(this));
         this.tcp.on('connection', connection.bind(this));
