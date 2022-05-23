@@ -54,6 +54,13 @@ const validators = {
             auth: joi.string().optional().allow(null).max(200).min(1),
             secret: joi.string().required().max(100).min(1)
         }
+    ),
+    registerService: joi.object(
+        {
+            name: joi.string().required().max(100).min(1),
+            http: joi.string().optional().allow(null).max(200).min(1),
+            auth: joi.string().optional().allow(null).max(200).min(1),
+        }
     )
 };
 

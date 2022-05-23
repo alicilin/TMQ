@@ -296,6 +296,11 @@ class TMQS {
 
     async registerService(name, http, auth) {
         let service = { name, http, auth };
+        let isValid = await stc(() => validators.registerService.validateAsync(service));
+        if (_.isError(isValid)) {
+            throw new Error(isValid.message);
+        }
+
         await this.knex('services').insert(service).onConflict('name').merge();
     }
 
