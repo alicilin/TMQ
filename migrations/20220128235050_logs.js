@@ -7,12 +7,12 @@ exports.up = function (knex) {
         if (!exists) {
             return knex.schema.createTable('logs', table => {
                 table.increments('id').primary();
-                table.string('sender', 100).notNull();
-                table.string('receiver', 100).notNull();
-                table.string('channel', 100).notNull();
-                table.string('event', 100).notNull();
-                table.text('message').notNull();
-                table.text('data').notNull();
+                table.string('sender', 100).notNullable();
+                table.string('receiver', 100).notNullable();
+                table.string('channel', 100).notNullable();
+                table.string('event', 100).notNullable();
+                table.text('message').notNullable();
+                table.text('data').notNullable();
 
                 table.index('sender');
                 table.index('receiver');

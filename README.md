@@ -1,6 +1,6 @@
 # @connectterou/tmq
 
-TCP based Message Queue server & Client for Node.js
+TCP based, scalable Message Queue server & Client / Http Based Service Registry for Node.js
 
 ## Installation
 
@@ -35,8 +35,8 @@ const connection = {
 // }
 
 async function main() {
-    // listening on port 8080, if path parameter is set to :memory: it stores data in ram
-    await (new TMQS({ port: 8080, secret: '1234.', connection })).listen();
+    // listening on port 8080, listening on http port : 8081
+    await (new TMQS({ port: 8080, hport: 8081 secret: '1234.', connection })).listen();
     
     // create service
     let mqc1 = new TMQC({ service: 'test', channel: 'channel-test', ip: '127.0.0.1', port: 8080, secret: '1234.' }); 
@@ -81,6 +81,49 @@ async function main() {
         await mqc1.publish({ service: 'test5', event: 'workedx', data: 'holaaa mqc1 > mqc5 - ' + i });
         await mqc3.publish({ service: 'test4', event: 'worked', data: 'holaaa mqc3 > mqc4 - ' + i });
     }
+
+    
+    //***************************SERVICE REGISTRY *****************************
+    const axios = require('axios').default;
+    
+    // register service
+    axios.post(
+        'http://[server ip or domain]:[server port]/register', 
+        { 
+            name: 'my_service', 
+            http: 'http://myservice', 
+            auth: 'test:pass', 
+            checkpath: '/health-check' 
+        }, 
+        { 
+            headers: { 
+                'X-SECRET': '1234.' 
+            } 
+        }
+    ); 
+    // name: my service, 
+    // http: http ip or domain of my service, 
+    // auth: my service access credentials
+    // checkpath: path to check if my service is up (The server will request a get. It should get OK as response)
+    // return: { success: true, service: service information } or { succes: false, message: error message }
+
+    //-------------------------------------------------------------------------------------------------------------------------
+
+    // service list
+    axios.get('http://[server ip or domain]:[server port]/services', { headers: { 'X-SECRET': '1234.' } }); 
+    // return: array of service list  or { succes: false, message: error message }
+
+    //-------------------------------------------------------------------------------------------------------------------------
+
+    // request to another service without ip or domain
+    axios.get('http://[server ip or domain]:[server port]/request/[service name]/param1/param2/param3', { headers: { 'X-SECRET': '1234.' } }); 
+    // return: response from other service or  { success: false, message: error message }
+    // important! 
+    //    1) other service must be registered.
+    //    2) The other service must be able to respond to http requests. e.g; must be written in express
+    //    3) accepts all http methods
+    //    4) The endpoint specified in the "checkpath" parameter of the other service must be operational
+    //-------------------------------------------------------------------------------------------------------------------------
 }
 
 main();

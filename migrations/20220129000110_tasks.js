@@ -7,14 +7,14 @@ exports.up = function (knex) {
         if (!exists) {
             return knex.schema.createTable('tasks', table => {
                 table.increments('id').primary();
-                table.string('uid', 100).notNull();
+                table.string('uid', 100).notNullable();
                 table.string('parent', 100);
-                table.string('channel', 100).notNull();
-                table.string('sender', 100).notNull();
-                table.string('receiver', 100).notNull();
-                table.string('event', 100).notNull();
+                table.string('channel', 100).notNullable();
+                table.string('sender', 100).notNullable();
+                table.string('receiver', 100).notNullable();
+                table.string('event', 100).notNullable();
                 table.integer('priority').defaultTo(knex.raw('1'));
-                table.bigInteger('delay').notNull();
+                table.bigInteger('delay').notNullable();
                 table.binary('data');
 
                 table.unique('uid');

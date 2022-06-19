@@ -7,8 +7,8 @@ exports.up = function (knex) {
         if (!exists) {
             return knex.schema.createTable('locks', table => {
                 table.increments('id').primary();
-                table.string('key', 100).notNull();
-                table.integer('expired_at').notNull();
+                table.string('key', 100).notNullable();
+                table.integer('expired_at').notNullable();
                 
                 table.unique('key');
                 table.index('expired_at');

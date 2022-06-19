@@ -4,6 +4,7 @@ const validators = {
     constructor: joi.object(
         {
             port: joi.number().integer().min(7000).max(9999).required(),
+            hport: joi.number().integer().min(7000).max(9999).required(),
             secret: joi.string().required(),
             locktimeout: joi.number().integer().required(),
             connection: joi.any().required(),
@@ -50,16 +51,15 @@ const validators = {
             name: joi.string().required().max(100).min(1),
             channel: joi.string().required().max(100).min(1),
             events: joi.array().items(joi.string().max(100).min(1)).optional(),
-            http: joi.string().optional().allow(null).max(200).min(1),
-            auth: joi.string().optional().allow(null).max(200).min(1),
             secret: joi.string().required().max(100).min(1)
         }
     ),
-    registerService: joi.object(
+    register: joi.object(
         {
             name: joi.string().required().max(100).min(1),
             http: joi.string().optional().allow(null).max(200).min(1),
             auth: joi.string().optional().allow(null).max(200).min(1),
+            checkpath: joi.string().optional().regex(/\/.*/i).not(null).max(100).min(2),
         }
     )
 };

@@ -7,10 +7,15 @@ const { v4 } = require('uuid');
 const sleep = require('./helpers/sleep');
 const stc = require('./helpers/stc');
 const { encode, decode } = require('msgpackr');
-const _ = require('lodash');
+const express = require('express');
+const proxy = require('./helpers/proxy');
+const healthcheck = require('./helpers/health-check');
+const parsers = [express.urlencoded({ extended: false }), express.json()];
 
 async function services(socket, msg, res) {
-    this.knex('services').then(x => res(x));
+    this.knex('services')
+        .then(x => res(x))
+        .catch(x => res([]));
 }
 
 async function cancel(socket, msg, res) {
@@ -68,7 +73,7 @@ async function publish(socket, msg, res) {
             let matcher = new RegExp(...msg['service']);
             let response = [];
             try {
-                let services = await this.knex('services');
+                let services = await this.knex('services').whereNull('http').select();
                 for (let service of services) {
                     if (matcher.test(service['name'])) {
                         let task = (
@@ -142,31 +147,35 @@ async function publish(socket, msg, res) {
 }
 
 async function pusher(task) {
-    for await (let socket of this.tcp.filterSockets(`${task['receiver']}:${task['channel']}`)) {
-        if (socket['status'] === 'loose' && _.includes(socket['events'], task['event'])) {
-            try {
-                let lock = { key: task['channel'], expired_at: moment().add(this.lt, 'second').unix() };
-                let locked = await stc(() => this.knex('locks').insert(lock));
-                if (_.isError(locked)) {
-                    return;
+    try {
+        for await (let socket of this.tcp.filterSockets(`${task['receiver']}:${task['channel']}`)) {
+            if (socket['status'] === 'loose' && _.includes(socket['events'], task['event'])) {
+                try {
+                    let lock = { key: task['channel'], expired_at: moment().add(this.lt, 'second').unix() };
+                    let locked = await stc(() => this.knex('locks').insert(lock));
+                    if (_.isError(locked)) {
+                        return;
+                    }
+
+                    //-------------------------------------------------------------------------
+                    socket.emit('task', task).catch(console.log);
+                    socket['status'] = 'busy';
+                    socket['time'] = moment().unix();
+                    //------------------------------------------------------------------------
+                    await this.knex('tasks').where('id', task.id).delete();
+                } catch (error) {
+                    console.log(error);
+                    continue;
                 }
 
-                //-------------------------------------------------------------------------
-                socket.emit('task', task).catch(console.log);
-                socket['status'] = 'busy';
-                socket['time'] = moment().unix();
-                //------------------------------------------------------------------------
-                await this.knex('tasks').where('id', task.id).delete();
-            } catch (error) {
-                console.log(error);
-                continue;
+                return;
             }
-
-            return;
         }
-    }
 
-    return true;
+        return true;
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 async function taskloop() {
@@ -234,32 +243,29 @@ async function connection(socket) {
 }
 
 async function auth(socket, next) {
-    let credentials = _.first(await socket.onceAsync('credentials'));
-    let isValid = await stc(() => validators.auth.validateAsync(credentials));
-    if (_.isError(isValid) || credentials['secret'] !== this.secret) {
+    try {
+        let credentials = _.first(await socket.onceAsync('credentials'));
+        let isValid = await stc(() => validators.auth.validateAsync(credentials));
+        if (_.isError(isValid) || credentials['secret'] !== this.secret) {
+            return;
+        }
+
+        socket.join('services');
+        socket.join(`${credentials['name']}:${credentials['channel']}`);
+        socket.join(`service:${credentials['name']}`);
+        socket.join(`channel:${credentials['channel']}`);
+        socket['name'] = credentials['name'];
+        socket['channel'] = credentials['channel'];
+        socket['events'] = credentials['events'];
+        socket['status'] = 'loose';
+        //---------------------------------------------------------------
+        let service = { name: credentials['name'], http: null, auth: null, checkpath: null };
+        await this.knex('services').insert(service).onConflict('name').ignore();
+        next();
+    } catch (error) {
+        console.error(error);
         return;
     }
-
-    socket.join('services');
-    socket.join(`${credentials['name']}:${credentials['channel']}`);
-    socket.join(`service:${credentials['name']}`);
-    socket.join(`channel:${credentials['channel']}`);
-    socket['name'] = credentials['name'];
-    socket['channel'] = credentials['channel'];
-    socket['events'] = credentials['events'];
-    socket['status'] = 'loose';
-
-    if (credentials['http']) {
-        let service = _.pick(credentials, ['name', 'http', 'auth']);
-        await this.knex('services').insert(service).onConflict('name').merge();
-    }
-
-    if (!credentials['http']) {
-        let service = _.pick(credentials, ['name']);
-        await this.knex('services').insert(service).onConflict('name').ignore();
-    }
-
-    next();
 }
 
 async function socketloop() {
@@ -281,27 +287,82 @@ async function socketloop() {
     } while (true);
 }
 
+async function httpAuth(req, res, next) {
+    let message = { success: false, message: 'ERROR.INVALID_SECRET' };
+    return (
+        req.get('X-SECRET') !== this.secret
+            ? res.status(400).send(message)
+            : next()
+    );
+}
+
+function httpServices(req, res) {
+    this.knex('services')
+        .then(x => res.status(200).send(x))
+        .catch(x => res.status(500).send({ success: false, message: x.message }));
+}
+
+async function httpRequest(req, res) {
+    try {
+        let first = req.url.indexOf('/');
+        let second = req.url.indexOf('/', first + 1);
+        let service = req.url.slice(first + 1, second === -1 ? undefined : second);
+        let path = req.url.slice(service.length + 1) || '/';
+        if (_.isNil(service) || service === '') {
+            return res.status(400).send({ success: false, message: 'ERROR.SERVICE_NOT_RESOLVED' });
+        }
+
+        let services = _.shuffle((await this.knex('services').whereLike('name', `${service}_http_%`).select()));
+        if (_.size(services) === 0) {
+            return res.status(500).send({ success: false, message: 'ERROR.NO_ACCESSIBLE_SERVICE_FOUND' });
+        }
+
+        for (let { http, auth, checkpath } of services) {
+            try {
+                await healthcheck({ target: http + checkpath, auth: auth || undefined });
+                return proxy(req, res, { target: http + path, auth: auth || undefined });
+            } catch (error) {
+                console.error(error.message);
+            }
+        }
+
+        return res.status(500).send({ success: false, message: 'ERROR.NO_ACCESSIBLE_SERVICE_FOUND' });
+    } catch (error) {
+        res.status(500).send({ success: false, message: error.message });
+    }
+}
+
+async function httpRegister(req, res) {
+    try {
+        let isValid = await stc(() => validators.register.validateAsync(req['body']));
+        if (_.isError(isValid)) {
+            throw new Error(isValid.message);
+        }
+
+        //-------------------------------------------------------------------------------------------
+        let { http, checkpath, auth, name } = req['body'];
+        let insert = { ...req['body'], name: `${name.replace(/(_http_([a-z0-9-_]+))/ig, '')}_http_${v4()}` };
+        await healthcheck({ target: http + checkpath, auth: auth || undefined });
+        await this.knex('services').insert(insert).onConflict('http').ignore();
+        res.status(200).send({ success: true, service: insert });
+    } catch (error) {
+        res.status(500).send({ success: false, message: error.message });
+    }
+}
+
 class TMQS {
     constructor(options) {
         validators.constructor.validate(options);
         this.lt = options.locktimeout || 60;
         this.id = v4();
         this.port = options.port || 3000;
+        this.hport = options.hport || 3001;
         this.secret = options.secret || 'ok';
         this.tcp = new Tserver(this.port);
         this.connection = options.connection;
         this.loops = options.loops || { };
         this.knex = knex(this.connection);
-    }
-
-    async registerService(name, http, auth) {
-        let service = { name, http, auth };
-        let isValid = await stc(() => validators.registerService.validateAsync(service));
-        if (_.isError(isValid)) {
-            throw new Error(isValid.message);
-        }
-
-        await this.knex('services').insert(service).onConflict('name').merge();
+        this.http = express();
     }
 
     async listen() {
@@ -328,6 +389,13 @@ class TMQS {
             setInterval(() => this.knex.raw('VACUUM').then(x => x).catch(x => x), 10 * 1000);
         }
 
+        //---------------------------------------------
+        this.http.use('/', httpAuth.bind(this));
+        this.http.get('/services', httpServices.bind(this));
+        this.http.all('/request', httpRequest.bind(this));
+        this.http.post('/register', parsers, httpRegister.bind(this));
+        this.http.listen(this.hport);
+        //---------------------------------------------
         return;
     }
     

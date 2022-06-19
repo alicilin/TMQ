@@ -11,8 +11,6 @@ class TMQC extends EventEmitter {
         this.channel = options.channel;
         this.service = options.service;
         this.ip = options.ip;
-        this.http = options.http;
-        this.auth = options.auth;
         this.port = options.port;
         this.secret = options.secret;
         this.socket = new Tclient(this.ip, this.port);
@@ -23,8 +21,6 @@ class TMQC extends EventEmitter {
                     .set('name', this.service)
                     .set('channel', this.channel)
                     .set('events', this.eventNames())
-                    .set('http', this.http)
-                    .set('auth', this.auth)
                     .set('secret', this.secret)
             );
 

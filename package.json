@@ -1,30 +1,36 @@
 {
   "name": "@connectterou/tmq",
-  "version": "2.0.22",
+  "version": "3.0.0",
   "description": "TCP based Message Queue server & Client for Node.js",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-      "message queue", 
-      "tcp based message queue", 
-      "MQ", "mysql mq", "postgre mq", 
-      "mysql message queue", 
-      "postgresql message queue",
-      "sqlite message queue",
-      "node.js message queue",
-      "microservice message queue"
+    "message queue",
+    "tcp based message queue",
+    "MQ",
+    "mysql mq",
+    "postgre mq",
+    "mysql message queue",
+    "postgresql message queue",
+    "sqlite message queue",
+    "node.js message queue",
+    "microservice message queue",
+    "microservice Service Discovery",
+    "service discovery",
+    "request to microservice"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@connectterou/tsock": "^1.0.9",
+    "express": "^4.18.1",
     "joi": "^17.6.0",
-    "knex": "^1.0.1",
+    "knex": "^2.1.0",
     "lodash": "^4.17.21",
     "moment-timezone": "^0.5.34",
-    "msgpackr": "^1.5.3",
+    "msgpackr": "^1.6.1",
     "uuid": "^8.3.2"
   },
   "engines": {
