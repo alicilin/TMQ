@@ -11,6 +11,7 @@ const express = require('express');
 const proxy = require('./helpers/proxy');
 const healthcheck = require('./helpers/health-check');
 const parsers = [express.urlencoded({ extended: false }), express.json()];
+const _ = require('lodash');
 
 async function services(socket, msg, res) {
     this.knex('services')
